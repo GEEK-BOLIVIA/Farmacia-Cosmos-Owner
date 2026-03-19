@@ -1,9 +1,3 @@
-/**
- * Producto View - Nexus Admin Suite
- * Versión Final: Foco preservado + Alertas con Acción Principal a la Derecha + Limpiador
- * Actualización: Ruta de importación corregida para estructura /views/ y /modals/
- */
-
 // CORRECCIÓN DE RUTA: Subimos un nivel para encontrar la carpeta modals
 import { productManager } from '../modals/createProduct.js';
 import { PaginationHelper } from '../utils/paginationHelper.js';

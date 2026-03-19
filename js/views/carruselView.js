@@ -42,8 +42,7 @@ export const carruselController_View = {
                 <div class="text-left p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Registro a eliminar</p>
                     <p class="text-slate-800 font-bold text-lg uppercase text-center">${nombreStr}</p>
-                </div>
-            `,
+                </div>`,
             icon: 'warning',
             showCancelButton: true,
             reverseButtons: true,
@@ -82,7 +81,6 @@ export const carruselController_View = {
         const contenedor = document.getElementById('content-area');
         if (!contenedor) return;
 
-        // 1. MOSTRAR LOADING INICIAL AL ABRIR LA VISTA
         Swal.fire({
             title: 'Cargando registros',
             html: 'Sincronizando con la base de datos...',
@@ -99,7 +97,6 @@ export const carruselController_View = {
             const fin = inicio + this._estado.filasPorPagina;
             const datosPaginados = datosFiltrados.slice(inicio, fin);
 
-            // CERRAR LOADING
             Swal.close();
 
             contenedor.innerHTML = `
@@ -115,19 +112,19 @@ export const carruselController_View = {
                         <div class="flex items-center gap-3 w-full md:w-auto">
                             <div class="relative flex-1 md:w-64">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-                                <input type="text" 
-                                       placeholder="Buscar carrusel..." 
+                                <input type="text"
+                                       placeholder="Buscar carrusel..."
                                        value="${this._estado.busqueda}"
                                        oninput="carruselController_View.gestionarBusqueda(this.value)"
                                        class="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
                             </div>
-                            <button onclick="carruselController_View.gestionarOrden()" 
+                            <button onclick="carruselController_View.gestionarOrden()"
                                     class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-blue-600 transition-all shadow-sm font-bold text-sm">
                                 <span class="material-symbols-outlined text-lg">${this._estado.orden === 'asc' ? 'sort_by_alpha' : 'text_rotate_vertical'}</span>
                                 ${this._estado.orden === 'asc' ? 'A-Z' : 'Z-A'}
                             </button>
                         </div>
-                        <button onclick="RegisterCarrusel.init('content-area')" 
+                        <button onclick="RegisterCarrusel.init('content-area')"
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md font-bold text-sm flex items-center gap-2">
                             <span class="material-symbols-outlined text-[20px]">add</span> Nuevo Carrusel
                         </button>
@@ -147,15 +144,14 @@ export const carruselController_View = {
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
                                     ${datosPaginados.length > 0
-                    ? datosPaginados.map((item, index) => this._crearFila(item, inicio + index)).join('')
-                    : `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic text-sm">No se encontraron carruseles</td></tr>`
-                }
+                                        ? datosPaginados.map((item, index) => this._crearFila(item, inicio + index)).join('')
+                                        : `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic text-sm">No se encontraron carruseles</td></tr>`
+                                    }
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
         } catch (error) {
             Swal.close();
             this.notificarError("Error al conectar con el servidor.");
@@ -184,22 +180,26 @@ export const carruselController_View = {
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center justify-center gap-2">
-                        
-                        <button onclick="carruselController.abrirEditor('${item.id}')" 
-                                title="Editar" 
-                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
+
+                        <!-- ✅ FIX: El botón se deshabilita al hacer clic para evitar doble disparo -->
+                        <button
+                            onclick="this.disabled=true; this.classList.add('opacity-50','cursor-not-allowed'); carruselController.abrirEditor('${item.id}')"
+                            title="Editar"
+                            class="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
                             <span class="material-symbols-outlined text-[18px]">edit</span>
                         </button>
 
-                        <button onclick="carruselController_View.verDetalles('${item.id}', '${item.nombre}', '${item.tipo}')" 
-                                title="Vista Previa" 
-                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-800 hover:text-white transition-all shadow-sm">
+                        <button
+                            onclick="carruselController_View.verDetalles('${item.id}', '${item.nombre}', '${item.tipo}')"
+                            title="Vista Previa"
+                            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-800 hover:text-white transition-all shadow-sm">
                             <span class="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
 
-                        <button onclick="carruselController.borrarCarruselCompleto('${item.id}')" 
-                                title="Eliminar" 
-                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                        <button
+                            onclick="carruselController.borrarCarruselCompleto('${item.id}')"
+                            title="Eliminar"
+                            class="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm">
                             <span class="material-symbols-outlined text-[18px]">delete</span>
                         </button>
 
@@ -218,13 +218,13 @@ export const carruselController_View = {
 
             Swal.fire({
                 html: window.carruselTemplates.renderConsultaPro(items, 0, tipo),
-                width: '1000px', // Ancho controlado
+                width: '1000px',
                 background: 'transparent',
                 showConfirmButton: false,
                 showCloseButton: true,
                 closeButtonHtml: '<span class="material-symbols-outlined text-white text-4xl">close</span>',
                 customClass: {
-                    htmlContainer: 'overflow-hidden-important', // Clase personalizada para evitar scroll
+                    htmlContainer: 'overflow-hidden-important',
                     popup: 'bg-transparent shadow-none'
                 },
                 didOpen: () => {
@@ -237,27 +237,26 @@ export const carruselController_View = {
                 },
                 willClose: () => clearInterval(this._autoplayInterval)
             });
-        } catch (error) { console.error(error); }
+        } catch (error) {
+            console.error(error);
+        }
     },
+
     moverModalSlide(direccion, total) {
         if (total <= 1) return;
         this._modalEstado.indexActual = (this._modalEstado.indexActual + direccion + total) % total;
 
-        // 1. Alternar Visibilidad de Slides
         const slides = document.querySelectorAll('.modal-slide-consulta');
         slides.forEach((slide, i) => {
             slide.classList.toggle('hidden', i !== this._modalEstado.indexActual);
             slide.classList.toggle('flex', i === this._modalEstado.indexActual);
         });
 
-        // 2. Animar Indicadores (Dots)
         const dots = document.querySelectorAll('#modal-dots-consulta div');
         dots.forEach((dot, i) => {
-            if (i === this._modalEstado.indexActual) {
-                dot.className = 'h-1.5 w-12 rounded-full bg-blue-500 transition-all duration-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]';
-            } else {
-                dot.className = 'h-1.5 w-3 rounded-full bg-white/30 transition-all duration-500';
-            }
+            dot.className = i === this._modalEstado.indexActual
+                ? 'h-1.5 w-12 rounded-full bg-blue-500 transition-all duration-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                : 'h-1.5 w-3 rounded-full bg-white/30 transition-all duration-500';
         });
     },
 
