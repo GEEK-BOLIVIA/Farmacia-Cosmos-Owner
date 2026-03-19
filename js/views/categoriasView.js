@@ -7,7 +7,8 @@ export const categoriasView = {
         paginaActualCat: 1,
         paginaActualSub: 1,
         filasPorPagina: 10,
-        pestanaActiva: 'categorias'
+        pestanaActiva: 'categorias',
+        seleccionados: [] // ✅ IDs seleccionados
     },
 
     _datosCargados: {
@@ -52,7 +53,6 @@ export const categoriasView = {
     },
 
     render(datosPadres, columnasPadres, datosHijos, columnasHijos) {
-        // ✅ Guardar datos en memoria para filtrado rápido sin consultas
         this._datosCargados = {
             padres: datosPadres,
             hijos: datosHijos,
@@ -76,12 +76,14 @@ export const categoriasView = {
 
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div class="flex gap-2 bg-slate-200/50 p-1 rounded-2xl w-fit border border-slate-200/60">
-                        <button onclick="categoriasView.cambiarTab('categorias')" 
-                            class="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${esCat ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
+                        <button id="tab-btn-categorias"
+                                onclick="categoriasView.cambiarTab('categorias')" 
+                                class="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${esCat ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
                             <span class="material-symbols-outlined text-[20px]">folder</span> Categorías
                         </button>
-                        <button onclick="categoriasView.cambiarTab('subcategorias')" 
-                            class="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${!esCat ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
+                        <button id="tab-btn-subcategorias"
+                                onclick="categoriasView.cambiarTab('subcategorias')" 
+                                class="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${!esCat ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
                             <span class="material-symbols-outlined text-[20px]">account_tree</span> Subcategorías
                         </button>
                     </div>
@@ -129,12 +131,14 @@ export const categoriasView = {
                 'paginaActualSub')}
                     </div>
                 </div>
-            </div>`;
+            </div>
+            ${this._renderBarraFlotante()}`;
 
         this._reenlazarBotones();
+        this._actualizarBarraFlotante();
+        this._actualizarCheckboxHeader();
     },
 
-    // ✅ Solo actualiza las tablas sin recargar el esqueleto ni ir a Supabase
     _actualizarTablas() {
         const { padres, hijos, columnasPadres, columnasHijos } = this._datosCargados;
 
@@ -160,15 +164,202 @@ export const categoriasView = {
         }
 
         this._reenlazarBotones();
+        this._actualizarCheckboxHeader(); // ✅ con el setTimeout interno ya funciona
     },
 
-    // ✅ Re-enlaza los botones Nueva/Config después de cada re-render de tablas
     _reenlazarBotones() {
         const btnNuevaCat = document.getElementById('btn-nueva-cat');
         const btnNuevaSub = document.getElementById('btn-nueva-sub');
         if (btnNuevaCat) btnNuevaCat.onclick = () => categoriasController.mostrarFormularioCreacion('padre');
         if (btnNuevaSub) btnNuevaSub.onclick = () => categoriasController.mostrarFormularioCreacion('hijo');
     },
+
+    // ==========================================
+    // SELECCIÓN POR LOTES
+    // ==========================================
+
+    toggleSeleccion(id) {
+        const idStr = String(id);
+        const idx = this._estado.seleccionados.indexOf(idStr);
+        if (idx === -1) {
+            this._estado.seleccionados.push(idStr);
+        } else {
+            this._estado.seleccionados.splice(idx, 1);
+        }
+        const fila = document.querySelector(`.cat-checkbox[data-id="${idStr}"]`)?.closest('tr');
+        if (fila) fila.classList.toggle('bg-red-50/40', this._estado.seleccionados.includes(idStr));
+
+        this._actualizarBarraFlotante();
+        this._actualizarCheckboxHeader();
+    },
+
+    toggleSeleccionTodos() {
+        // ✅ Obtener todos los IDs visibles en la pestaña activa
+        const esCat = this._estado.pestanaActiva === 'categorias';
+        const datos = esCat
+            ? this._ordenarDatos(this._filtrarDatos(this._datosCargados.padres))
+            : this._ordenarDatos(this._filtrarDatos(this._datosCargados.hijos));
+
+        const todosIds = datos.map(d => String(d.id));
+        const todosSeleccionados = todosIds.every(id => this._estado.seleccionados.includes(id));
+
+        if (todosSeleccionados) {
+            this._estado.seleccionados = [];
+        } else {
+            this._estado.seleccionados = [...todosIds];
+        }
+
+        document.querySelectorAll('.cat-checkbox').forEach(cb => {
+            const seleccionado = this._estado.seleccionados.includes(cb.dataset.id);
+            cb.checked = seleccionado;
+            const fila = cb.closest('tr');
+            if (fila) fila.classList.toggle('bg-red-50/40', seleccionado);
+        });
+
+        this._actualizarBarraFlotante();
+        this._actualizarCheckboxHeader();
+    },
+
+    _actualizarCheckboxHeader() {
+        setTimeout(() => {
+            // ✅ Usar el ID correcto según la pestaña activa
+            const esCat = this._estado.pestanaActiva === 'categorias';
+            const checkboxHeaderId = esCat ? 'cat-checkbox-header-cat' : 'cat-checkbox-header-sub';
+            const chkHeader = document.getElementById(checkboxHeaderId);
+            if (!chkHeader) return;
+
+            const datos = esCat
+                ? this._ordenarDatos(this._filtrarDatos(this._datosCargados.padres))
+                : this._ordenarDatos(this._filtrarDatos(this._datosCargados.hijos));
+
+            const todosIds = datos.map(d => String(d.id));
+            const seleccionados = this._estado.seleccionados;
+
+            if (todosIds.length === 0) {
+                chkHeader.checked = false;
+                chkHeader.indeterminate = false;
+                return;
+            }
+
+            const todosSeleccionados = todosIds.every(id => seleccionados.includes(id));
+            const algunoSeleccionado = todosIds.some(id => seleccionados.includes(id));
+
+            chkHeader.checked = todosSeleccionados;
+            chkHeader.indeterminate = algunoSeleccionado && !todosSeleccionados;
+        }, 0);
+    },
+    _actualizarBarraFlotante() {
+        const barra = document.getElementById('barra-lote-cat');
+        const contador = document.getElementById('lote-cat-contador');
+        const cantidad = this._estado.seleccionados.length;
+
+        if (!barra) return;
+
+        if (cantidad > 0) {
+            barra.classList.remove('translate-y-full', 'opacity-0', 'pointer-events-none');
+            barra.classList.add('translate-y-0', 'opacity-100');
+        } else {
+            barra.classList.add('translate-y-full', 'opacity-0', 'pointer-events-none');
+            barra.classList.remove('translate-y-0', 'opacity-100');
+        }
+
+        if (contador) contador.textContent = cantidad;
+    },
+
+    _renderBarraFlotante() {
+        return `
+            <div id="barra-lote-cat"
+                 class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50
+                        translate-y-full opacity-0 pointer-events-none
+                        transition-all duration-300 ease-out">
+                <div class="flex items-center gap-3 bg-white border border-slate-200 px-5 py-3 rounded-2xl shadow-2xl">
+                    
+                    <div class="flex items-center gap-2 pr-4 border-r border-slate-200">
+                        <div class="w-7 h-7 bg-red-600 rounded-lg flex items-center justify-center">
+                            <span class="material-symbols-outlined text-white text-[16px]">checklist</span>
+                        </div>
+                        <div class="flex flex-col leading-none">
+                            <span class="text-[9px] font-black text-slate-400 uppercase">Seleccionados</span>
+                            <span class="text-sm font-black text-slate-800">
+                                <span id="lote-cat-contador">0</span> ítems
+                            </span>
+                        </div>
+                    </div>
+
+                    <button onclick="categoriasView.eliminarSeleccionados()"
+                            class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all text-[10px] font-black uppercase whitespace-nowrap">
+                        <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+                        Eliminar seleccionados
+                    </button>
+
+                    <button onclick="categoriasView.limpiarSeleccion()"
+                            title="Cancelar selección"
+                            class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-all border border-slate-200">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    async eliminarSeleccionados() {
+        const ids = [...this._estado.seleccionados];
+        if (ids.length === 0) return;
+        const cantidad = ids.length;
+
+        const confirm = await Swal.fire({
+            title: `<span class="text-red-600 font-black uppercase text-sm">¿Eliminar ${cantidad} registro${cantidad > 1 ? 's' : ''}?</span>`,
+            text: 'Esta acción eliminará los registros y sus vinculaciones.',
+            icon: 'warning',
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonText: `SÍ, ELIMINAR (${cantidad})`,
+            cancelButtonText: 'CANCELAR',
+            confirmButtonColor: '#dc2626',
+            customClass: {
+                popup: 'rounded-[32px] shadow-2xl',
+                confirmButton: 'rounded-xl px-6 py-3 font-bold text-xs uppercase',
+                cancelButton: 'rounded-xl px-6 py-3 font-bold text-xs uppercase bg-slate-100 text-slate-500'
+            }
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        Swal.fire({
+            title: '<span class="text-slate-800 font-black uppercase text-sm">Eliminando...</span>',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+            customClass: { popup: 'rounded-[32px] shadow-xl' }
+        });
+
+        // ✅ Usar window.categoriasController para evitar el problema de import circular
+        const resultado = await window.categoriasController.eliminarLote(ids);
+
+        Swal.close();
+
+        if (resultado.exito) {
+            this.limpiarSeleccion();
+            this.notificarExito(`${cantidad} registro${cantidad > 1 ? 's' : ''} eliminado${cantidad > 1 ? 's' : ''} correctamente`);
+            await window.categoriasController._recargarSilencioso();
+        } else {
+            this.notificarError('Ocurrió un error al eliminar: ' + resultado.mensaje);
+        }
+    },
+    limpiarSeleccion() {
+        this._estado.seleccionados = [];
+        document.querySelectorAll('.cat-checkbox').forEach(cb => {
+            cb.checked = false;
+            const fila = cb.closest('tr');
+            if (fila) fila.classList.remove('bg-red-50/40');
+        });
+        const chkHeader = document.getElementById('cat-checkbox-header');
+        if (chkHeader) { chkHeader.checked = false; chkHeader.indeterminate = false; }
+        this._actualizarBarraFlotante();
+    },
+
+    // ==========================================
+    // FILTRADO Y ORDEN
+    // ==========================================
 
     _filtrarDatos(datos) {
         if (!this._estado.busqueda) return [...datos];
@@ -188,55 +379,82 @@ export const categoriasView = {
         this._estado.busqueda = valor;
         this._estado.paginaActualCat = 1;
         this._estado.paginaActualSub = 1;
-
-        // ✅ Mostrar/ocultar X sin recargar nada
         const btnLimpiar = document.getElementById('btn-limpiar-busqueda-cat');
         if (btnLimpiar) btnLimpiar.classList.toggle('hidden', !valor);
-
-        this._actualizarTablas(); // ✅ Filtra en memoria, sin consultas a Supabase
+        this._actualizarTablas();
     },
 
     limpiarBusqueda() {
         this._estado.busqueda = '';
         this._estado.paginaActualCat = 1;
         this._estado.paginaActualSub = 1;
-
         const input = document.getElementById('input-busqueda');
         const btnLimpiar = document.getElementById('btn-limpiar-busqueda-cat');
-
         if (input) { input.value = ''; input.focus(); }
         if (btnLimpiar) btnLimpiar.classList.add('hidden');
-
         this._actualizarTablas();
     },
 
     gestionarOrden() {
         this._estado.orden = this._estado.orden === 'asc' ? 'desc' : 'asc';
-
-        // ✅ Actualiza solo el botón sin recargar
         const btn = document.getElementById('btn-orden-categorias');
         if (btn) {
             btn.innerHTML = `
                 <span class="material-symbols-outlined text-lg">${this._estado.orden === 'asc' ? 'sort_by_alpha' : 'text_rotate_vertical'}</span>
                 ${this._estado.orden === 'asc' ? 'A-Z' : 'Z-A'}`;
         }
-
         this._actualizarTablas();
     },
 
     cambiarTab(idTab) {
         this._estado.pestanaActiva = idTab;
-        // ✅ Solo alterna visibilidad, sin consultas ni re-render completo
+        this._estado.seleccionados = [];
+
         const secCat = document.getElementById('seccion-categorias');
         const secSub = document.getElementById('seccion-subcategorias');
         const esCat = idTab === 'categorias';
+
+        // ✅ Alternar visibilidad de secciones
         if (secCat) secCat.classList.toggle('hidden', !esCat);
         if (secSub) secSub.classList.toggle('hidden', esCat);
 
-        // ✅ Actualizar estilos de los botones de tab
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('animate-fade-in'));
-        const activo = document.getElementById(esCat ? 'seccion-categorias' : 'seccion-subcategorias');
-        if (activo) activo.classList.add('animate-fade-in');
+        // ✅ Actualizar estilos de botones del tab interno
+        const btnCat = document.getElementById('tab-btn-categorias');
+        const btnSub = document.getElementById('tab-btn-subcategorias');
+        const claseActivo = 'flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 bg-white text-blue-600 shadow-sm';
+        const claseInactivo = 'flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 text-slate-500 hover:text-slate-700';
+        if (btnCat) btnCat.className = esCat ? claseActivo : claseInactivo;
+        if (btnSub) btnSub.className = !esCat ? claseActivo : claseInactivo;
+
+        // ✅ Sincronizar sidebar — abrir/cerrar details
+        const detailsCat = document.getElementById('sidebar-details-categorias');
+        const detailsSub = document.getElementById('sidebar-details-subcategorias');
+        if (esCat) {
+            detailsCat?.setAttribute('open', '');
+            detailsSub?.removeAttribute('open');
+        } else {
+            detailsSub?.setAttribute('open', '');
+            detailsCat?.removeAttribute('open');
+        }
+
+        // ✅ Actualizar estilos activo/inactivo en el summary del sidebar
+        const summaryCat = detailsCat?.querySelector('summary');
+        const summarySub = detailsSub?.querySelector('summary');
+        const divCat = summaryCat?.querySelector('div');
+        const divSub = summarySub?.querySelector('div');
+
+        const claseActivoSidebar = 'flex items-center gap-3 flex-1 text-blue-600';
+        const claseInactivoSidebar = 'flex items-center gap-3 flex-1';
+
+        if (divCat) divCat.className = esCat ? claseActivoSidebar : claseInactivoSidebar;
+        if (divSub) divSub.className = !esCat ? claseActivoSidebar : claseInactivoSidebar;
+
+        const summaryCatClase = 'flex items-center justify-between rounded-lg px-3 py-2.5 transition-all cursor-pointer list-none';
+        if (summaryCat) summaryCat.className = summaryCatClase + (esCat ? ' bg-blue-50 text-blue-600' : ' text-slate-500 hover:bg-blue-50 hover:text-blue-600');
+        if (summarySub) summarySub.className = summaryCatClase + (!esCat ? ' bg-blue-50 text-blue-600' : ' text-slate-500 hover:bg-blue-50 hover:text-blue-600');
+
+        this._actualizarBarraFlotante();
+        this._actualizarCheckboxHeader();
     },
 
     cambiarPagina(nuevaPagina) {
@@ -244,8 +462,12 @@ export const categoriasView = {
             ? 'paginaActualCat'
             : 'paginaActualSub';
         this._estado[tipoPagina] = nuevaPagina;
-        this._actualizarTablas(); // ✅ Sin consultas
+        this._actualizarTablas();
     },
+
+    // ==========================================
+    // TABLA
+    // ==========================================
 
     _generarSeccionTabla(tipo, idConfig, idNuevo, datos, columnas, tipoPagina) {
         const totalRegistros = datos.length;
@@ -253,58 +475,76 @@ export const categoriasView = {
         const fin = inicio + this._estado.filasPorPagina;
         const datosPaginados = datos.slice(inicio, fin);
 
-        return `
-        <div class="flex justify-between items-center mb-4 px-1">
-            <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Listado de ${tipo} (${totalRegistros})</h2>
-            <div class="flex items-center gap-3">
-                <button id="${idConfig}" class="p-2.5 text-slate-500 bg-white border border-slate-200 rounded-xl hover:text-blue-600 transition-all shadow-sm">
-                    <span class="material-symbols-outlined text-[22px]">view_column</span>
-                </button>
-                <button id="${idNuevo}" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md font-bold text-sm flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[20px]">add</span> Nueva
-                </button>
-            </div>
-        </div>
+        // ✅ ID único por tabla
+        const checkboxHeaderId = tipoPagina === 'paginaActualCat'
+            ? 'cat-checkbox-header-cat'
+            : 'cat-checkbox-header-sub';
 
-        <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden mb-8">
-            <div class="overflow-x-auto"> 
-                <table class="w-full text-left border-collapse table-auto"> 
-                    <thead>
-                        <tr class="bg-slate-50/80 border-b border-slate-200">
-                            <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase w-24 text-center">N°</th>
-                            ${columnas.map(col => {
+        return `
+    <div class="flex justify-between items-center mb-4 px-1">
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Listado de ${tipo} (${totalRegistros})</h2>
+        <div class="flex items-center gap-3">
+            <button id="${idConfig}" class="p-2.5 text-slate-500 bg-white border border-slate-200 rounded-xl hover:text-blue-600 transition-all shadow-sm">
+                <span class="material-symbols-outlined text-[22px]">view_column</span>
+            </button>
+            <button id="${idNuevo}" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md font-bold text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">add</span> Nueva
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden mb-8">
+        <div class="overflow-x-auto"> 
+            <table class="w-full text-left border-collapse table-auto"> 
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-200">
+                        <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase w-32 text-center">
+                            <div class="flex items-center justify-center gap-2 cursor-pointer"
+                                 onclick="categoriasView.toggleSeleccionTodos()">
+                                <input type="checkbox"
+                                       id="${checkboxHeaderId}"
+                                       class="w-4 h-4 rounded accent-red-500 cursor-pointer pointer-events-none">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-wide whitespace-nowrap">Selec. todo</span>
+                            </div>
+                        </th>
+                        ${columnas.map(col => {
             const minWidth = col === 'nombre' ? 'min-w-[250px]' : 'min-w-[200px]';
             return `<th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase ${minWidth} text-center">${col === 'categoria_padre' ? 'Vinculado a' : col.replace(/_/g, ' ')}</th>`;
         }).join('')}
-                            <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center w-52">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        ${datosPaginados.length > 0
+                        <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center w-52">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    ${datosPaginados.length > 0
                 ? datosPaginados.map((item, index) => this._crearFila(item, columnas, inicio + index)).join('')
                 : `<tr><td colspan="10" class="px-6 py-12 text-center text-slate-400 italic text-sm">No se encontraron resultados</td></tr>`
             }
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
 
-            ${PaginationHelper.render(
+        ${PaginationHelper.render(
                 totalRegistros,
                 this._estado.filasPorPagina,
                 this._estado[tipoPagina],
                 'categoriasView'
             )}
-        </div>`;
+    </div>`;
     },
-
     _crearFila(item, columnasVisibles, index) {
         const colorEstado = item.visible ? 'bg-emerald-500' : 'bg-slate-300';
         const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(item))));
+        const estaSeleccionado = this._estado.seleccionados.includes(String(item.id));
 
         return `
-            <tr class="hover:bg-blue-50/40 transition-colors group">
+            <tr class="hover:bg-blue-50/40 transition-colors group ${estaSeleccionado ? 'bg-red-50/40' : ''}">
                 <td class="px-6 py-4 text-sm text-slate-400 font-bold text-center border-r border-slate-50/50">
                     <div class="flex items-center justify-center gap-3">
+                        <input type="checkbox"
+                               class="cat-checkbox w-4 h-4 rounded accent-red-500 cursor-pointer"
+                               data-id="${item.id}"
+                               ${estaSeleccionado ? 'checked' : ''}
+                               onchange="categoriasView.toggleSeleccion('${item.id}')">
                         <span class="w-2.5 h-2.5 rounded-full ${colorEstado} ring-4 ring-white shadow-sm"></span>
                         ${index + 1}
                     </div>
@@ -512,9 +752,7 @@ export const categoriasView = {
         });
 
         if (formValues) {
-            return new Promise((resolve) => {
-                this.confirmarAccion('¿Está seguro de guardar estos cambios?', () => resolve(formValues));
-            });
+            return formValues;
         }
     }
 };

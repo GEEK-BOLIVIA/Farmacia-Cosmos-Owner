@@ -352,6 +352,15 @@ export const productoController = {
             console.error("Error al preparar eliminación:", error);
             productoView.notificarError?.('No se pudo cargar la confirmación.');
         }
+    },
+    async eliminarLote(ids) {
+        try {
+            await Promise.all(ids.map(id => productoModel.eliminar(id)));
+            return { exito: true };
+        } catch (err) {
+            console.error('Error en eliminarLote:', err.message);
+            return { exito: false, mensaje: err.message };
+        }
     }
 };
 

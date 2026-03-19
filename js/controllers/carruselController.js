@@ -245,7 +245,16 @@ export const carruselController = {
         };
 
         return await carruselModel.agregarItem(payloadDB);
-    }
+    },
+    async eliminarLote(ids) {
+        try {
+            await Promise.all(ids.map(id => carruselModel.eliminar(id)));
+            return { exito: true };
+        } catch (err) {
+            console.error('Error en eliminarLote:', err.message);
+            return { exito: false, mensaje: err.message };
+        }
+    },
 };
 
 window.carruselController = carruselController;

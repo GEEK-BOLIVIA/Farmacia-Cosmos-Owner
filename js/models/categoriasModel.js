@@ -167,7 +167,6 @@ export const categoriasModel = {
             };
         }
     },
-
     /**
      * Busca categorías activas por nombre
      */

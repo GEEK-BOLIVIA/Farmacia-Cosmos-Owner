@@ -195,7 +195,16 @@ export const categoriasController = {
         await configuracionColumnasController.abrirSelectorColumnas(tablaRef, columnasParaMostrarAlOwner, () => {
             this.inicializar(categoriasView._estado.pestanaActiva);
         });
-    }
+    },
+    async eliminarLote(ids) {
+        try {
+            await Promise.all(ids.map(id => categoriasModel.eliminar(id)));
+            return { exito: true };
+        } catch (err) {
+            console.error('Error en eliminarLote:', err.message);
+            return { exito: false, mensaje: err.message };
+        }
+    },
 };
 
 window.categoriasController = categoriasController;
