@@ -1,7 +1,6 @@
 import { PaginationHelper } from '../utils/paginationHelper.js';
 
 export const categoriasView = {
-    // Variables de estado local para la vista
     _estado: {
         busqueda: '',
         orden: 'asc',
@@ -11,9 +10,13 @@ export const categoriasView = {
         pestanaActiva: 'categorias'
     },
 
-    /**
-     * MÉTODOS DE NOTIFICACIÓN (SWEETALERT2)
-     */
+    _datosCargados: {
+        padres: [],
+        hijos: [],
+        columnasPadres: [],
+        columnasHijos: []
+    },
+
     notificarExito(mensaje) {
         Swal.fire({
             icon: 'success',
@@ -48,30 +51,21 @@ export const categoriasView = {
         });
     },
 
-    cambiarTab(idTab) {
-        this._estado.pestanaActiva = idTab;
-        categoriasController.refrescarVista();
-    },
-
-    /**
-     * RENDER PRINCIPAL
-     */
     render(datosPadres, columnasPadres, datosHijos, columnasHijos) {
+        // ✅ Guardar datos en memoria para filtrado rápido sin consultas
+        this._datosCargados = {
+            padres: datosPadres,
+            hijos: datosHijos,
+            columnasPadres,
+            columnasHijos
+        };
+
         const contenedor = document.getElementById('content-area');
         if (!contenedor) return;
 
-        const activeElementId = document.activeElement?.id;
-        const selectionStart = document.activeElement?.selectionStart;
-
-        let padresFiltrados = this._ordenarDatos(this._filtrarDatos(datosPadres));
-        let hijosFiltrados = this._ordenarDatos(this._filtrarDatos(datosHijos));
-
-        const colsPadresFiltradas = columnasPadres.filter(c => c !== 'id' && c !== 'visible');
-        const colsHijosFiltradas = columnasHijos.filter(c => c !== 'id' && c !== 'visible');
-
         const esCat = this._estado.pestanaActiva === 'categorias';
 
-        const html = `
+        contenedor.innerHTML = `
             <div class="p-8 animate-fade-in max-h-[calc(100vh-64px)] overflow-y-auto">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
@@ -93,17 +87,23 @@ export const categoriasView = {
                     </div>
 
                     <div class="flex items-center gap-3 w-full md:w-auto">
-                        <div class="relative flex-1 md:w-64">
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                        <div class="relative flex items-center flex-1 md:w-64">
+                            <span class="material-symbols-outlined absolute left-3 text-slate-400 text-lg">search</span>
                             <input type="text" 
                                    id="input-busqueda"
                                    placeholder="Buscar por nombre..." 
                                    value="${this._estado.busqueda}"
                                    oninput="categoriasView.gestionarBusqueda(this.value)"
-                                   class="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+                                   class="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+                            <button id="btn-limpiar-busqueda-cat"
+                                    onclick="categoriasView.limpiarBusqueda()"
+                                    class="${this._estado.busqueda ? '' : 'hidden'} absolute right-3 text-slate-300 hover:text-red-400 transition-colors flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[18px]">cancel</span>
+                            </button>
                         </div>
                         
-                        <button onclick="categoriasView.gestionarOrden()" 
+                        <button id="btn-orden-categorias"
+                                onclick="categoriasView.gestionarOrden()" 
                                 title="Orden: ${this._estado.orden === 'asc' ? 'A-Z' : 'Z-A'}"
                                 class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-blue-600 transition-all shadow-sm font-bold text-sm">
                             <span class="material-symbols-outlined text-lg">${this._estado.orden === 'asc' ? 'sort_by_alpha' : 'text_rotate_vertical'}</span>
@@ -113,26 +113,61 @@ export const categoriasView = {
                 </div>
 
                 <div id="seccion-categorias" class="tab-content ${esCat ? 'block' : 'hidden'} animate-fade-in">
-                    ${this._generarSeccionTabla('Categorías', 'btn-config-cat', 'btn-nueva-cat', padresFiltrados, colsPadresFiltradas, 'paginaActualCat')}
+                    <div id="tbody-wrapper-cat">
+                        ${this._generarSeccionTabla('Categorías', 'btn-config-cat', 'btn-nueva-cat',
+            this._ordenarDatos(this._filtrarDatos(datosPadres)),
+            columnasPadres.filter(c => c !== 'id' && c !== 'visible'),
+            'paginaActualCat')}
+                    </div>
                 </div>
 
                 <div id="seccion-subcategorias" class="tab-content ${!esCat ? 'block' : 'hidden'} animate-fade-in">
-                    ${this._generarSeccionTabla('Subcategorías', 'btn-config-sub', 'btn-nueva-sub', hijosFiltrados, colsHijosFiltradas, 'paginaActualSub')}
+                    <div id="tbody-wrapper-sub">
+                        ${this._generarSeccionTabla('Subcategorías', 'btn-config-sub', 'btn-nueva-sub',
+                this._ordenarDatos(this._filtrarDatos(datosHijos)),
+                columnasHijos.filter(c => c !== 'id' && c !== 'visible'),
+                'paginaActualSub')}
+                    </div>
                 </div>
-            </div>
-        `;
+            </div>`;
 
-        contenedor.innerHTML = html;
+        this._reenlazarBotones();
+    },
 
-        if (activeElementId) {
-            const el = document.getElementById(activeElementId);
-            if (el) {
-                el.focus();
-                if (selectionStart !== undefined && el.setSelectionRange) {
-                    el.setSelectionRange(selectionStart, selectionStart);
-                }
-            }
+    // ✅ Solo actualiza las tablas sin recargar el esqueleto ni ir a Supabase
+    _actualizarTablas() {
+        const { padres, hijos, columnasPadres, columnasHijos } = this._datosCargados;
+
+        const wrapperCat = document.getElementById('tbody-wrapper-cat');
+        const wrapperSub = document.getElementById('tbody-wrapper-sub');
+
+        if (wrapperCat) {
+            wrapperCat.innerHTML = this._generarSeccionTabla(
+                'Categorías', 'btn-config-cat', 'btn-nueva-cat',
+                this._ordenarDatos(this._filtrarDatos(padres)),
+                columnasPadres.filter(c => c !== 'id' && c !== 'visible'),
+                'paginaActualCat'
+            );
         }
+
+        if (wrapperSub) {
+            wrapperSub.innerHTML = this._generarSeccionTabla(
+                'Subcategorías', 'btn-config-sub', 'btn-nueva-sub',
+                this._ordenarDatos(this._filtrarDatos(hijos)),
+                columnasHijos.filter(c => c !== 'id' && c !== 'visible'),
+                'paginaActualSub'
+            );
+        }
+
+        this._reenlazarBotones();
+    },
+
+    // ✅ Re-enlaza los botones Nueva/Config después de cada re-render de tablas
+    _reenlazarBotones() {
+        const btnNuevaCat = document.getElementById('btn-nueva-cat');
+        const btnNuevaSub = document.getElementById('btn-nueva-sub');
+        if (btnNuevaCat) btnNuevaCat.onclick = () => categoriasController.mostrarFormularioCreacion('padre');
+        if (btnNuevaSub) btnNuevaSub.onclick = () => categoriasController.mostrarFormularioCreacion('hijo');
     },
 
     _filtrarDatos(datos) {
@@ -153,21 +188,63 @@ export const categoriasView = {
         this._estado.busqueda = valor;
         this._estado.paginaActualCat = 1;
         this._estado.paginaActualSub = 1;
-        categoriasController.refrescarVista();
+
+        // ✅ Mostrar/ocultar X sin recargar nada
+        const btnLimpiar = document.getElementById('btn-limpiar-busqueda-cat');
+        if (btnLimpiar) btnLimpiar.classList.toggle('hidden', !valor);
+
+        this._actualizarTablas(); // ✅ Filtra en memoria, sin consultas a Supabase
+    },
+
+    limpiarBusqueda() {
+        this._estado.busqueda = '';
+        this._estado.paginaActualCat = 1;
+        this._estado.paginaActualSub = 1;
+
+        const input = document.getElementById('input-busqueda');
+        const btnLimpiar = document.getElementById('btn-limpiar-busqueda-cat');
+
+        if (input) { input.value = ''; input.focus(); }
+        if (btnLimpiar) btnLimpiar.classList.add('hidden');
+
+        this._actualizarTablas();
     },
 
     gestionarOrden() {
         this._estado.orden = this._estado.orden === 'asc' ? 'desc' : 'asc';
-        categoriasController.refrescarVista();
+
+        // ✅ Actualiza solo el botón sin recargar
+        const btn = document.getElementById('btn-orden-categorias');
+        if (btn) {
+            btn.innerHTML = `
+                <span class="material-symbols-outlined text-lg">${this._estado.orden === 'asc' ? 'sort_by_alpha' : 'text_rotate_vertical'}</span>
+                ${this._estado.orden === 'asc' ? 'A-Z' : 'Z-A'}`;
+        }
+
+        this._actualizarTablas();
+    },
+
+    cambiarTab(idTab) {
+        this._estado.pestanaActiva = idTab;
+        // ✅ Solo alterna visibilidad, sin consultas ni re-render completo
+        const secCat = document.getElementById('seccion-categorias');
+        const secSub = document.getElementById('seccion-subcategorias');
+        const esCat = idTab === 'categorias';
+        if (secCat) secCat.classList.toggle('hidden', !esCat);
+        if (secSub) secSub.classList.toggle('hidden', esCat);
+
+        // ✅ Actualizar estilos de los botones de tab
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('animate-fade-in'));
+        const activo = document.getElementById(esCat ? 'seccion-categorias' : 'seccion-subcategorias');
+        if (activo) activo.classList.add('animate-fade-in');
     },
 
     cambiarPagina(nuevaPagina) {
         const tipoPagina = this._estado.pestanaActiva === 'categorias'
             ? 'paginaActualCat'
             : 'paginaActualSub';
-
         this._estado[tipoPagina] = nuevaPagina;
-        categoriasController.refrescarVista();
+        this._actualizarTablas(); // ✅ Sin consultas
     },
 
     _generarSeccionTabla(tipo, idConfig, idNuevo, datos, columnas, tipoPagina) {
@@ -176,7 +253,6 @@ export const categoriasView = {
         const fin = inicio + this._estado.filasPorPagina;
         const datosPaginados = datos.slice(inicio, fin);
 
-        // Renderizado de la tabla (mantenemos la estructura superior)
         return `
         <div class="flex justify-between items-center mb-4 px-1">
             <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Listado de ${tipo} (${totalRegistros})</h2>
@@ -218,8 +294,7 @@ export const categoriasView = {
                 this._estado[tipoPagina],
                 'categoriasView'
             )}
-        </div>
-    `;
+        </div>`;
     },
 
     _crearFila(item, columnasVisibles, index) {

@@ -49,15 +49,15 @@ export const categoriasController = {
     refrescarVista() {
         // Pasamos los datos completos; la vista hará el .slice() de la paginación internamente
         categoriasView.render(
-            this._datosPadres, 
-            this._colsPadres, 
-            this._datosHijos, 
+            this._datosPadres,
+            this._colsPadres,
+            this._datosHijos,
             this._colsHijos
         );
-        
+
         // Mantenemos tus configuraciones de eventos
         this._setupEventListeners();
-        this._setupTabLogic(); 
+        this._setupTabLogic();
     },
 
     async verDetalle(id) {
@@ -72,14 +72,13 @@ export const categoriasController = {
         if (res.exito) {
             categoriasView.notificarExito('Registro eliminado correctamente');
             // Recargamos manteniendo la pestaña actual del estado de la vista
-            this.inicializar(categoriasView._estado.pestanaActiva); 
+            this.inicializar(categoriasView._estado.pestanaActiva);
         } else {
             categoriasView.notificarError(res.mensaje);
         }
     },
 
     async mostrarFormularioCreacion(tipo) {
-        // Informamos a la vista en qué pestaña estamos antes de abrir el form
         categoriasView._estado.pestanaActiva = (tipo === 'padre') ? 'categorias' : 'subcategorias';
 
         const datos = await categoriasView.mostrarFormulario({
@@ -90,8 +89,8 @@ export const categoriasController = {
         if (datos) {
             const res = await categoriasModel.crear(datos);
             if (res.exito) {
-                this.inicializar(categoriasView._estado.pestanaActiva);
-                categoriasView.notificarExito('Registro creado con éxito');
+                categoriasView.notificarExito('Registro creado con éxito'); // ✅ Primero el éxito
+                await this._recargarSilencioso();                           // ✅ Luego recarga sin spinner
             } else {
                 categoriasView.notificarError('No se pudo crear el registro');
             }
@@ -102,27 +101,41 @@ export const categoriasController = {
         const registro = await categoriasModel.obtenerPorId(id);
         const padresDisponibles = this._datosPadres.filter(c => c.id !== id);
 
-        // Si el registro tiene id_padre, es una subcategoría
         categoriasView._estado.pestanaActiva = registro.id_padre ? 'subcategorias' : 'categorias';
 
         const nuevosDatos = await categoriasView.mostrarFormulario({
             titulo: 'Editar Registro',
             nombre: registro.nombre,
             id_padre: registro.id_padre,
-            categoriasPadre: padresDisponibles 
+            categoriasPadre: padresDisponibles
         });
 
         if (nuevosDatos) {
             const res = await categoriasModel.actualizar(id, nuevosDatos);
             if (res.exito) {
-                this.inicializar(categoriasView._estado.pestanaActiva);
-                categoriasView.notificarExito('Cambios guardados correctamente');
+                categoriasView.notificarExito('Cambios guardados correctamente'); // ✅ Primero el éxito
+                await this._recargarSilencioso();                                 // ✅ Luego recarga sin spinner
             } else {
                 categoriasView.notificarError('Error al actualizar');
             }
         }
     },
 
+    // ✅ Nuevo: recarga datos en segundo plano sin mostrar spinner
+    async _recargarSilencioso() {
+        try {
+            this._colsPadres = await configuracionColumnasController.obtenerColumnasVisibles(this.REF_PADRES, ['nombre']);
+            this._colsHijos = await configuracionColumnasController.obtenerColumnasVisibles(this.REF_HIJOS, ['nombre', 'categoria_padre']);
+
+            const todas = await categoriasModel.obtenerTodas();
+            this._datosPadres = todas.filter(c => !c.id_padre);
+            this._datosHijos = todas.filter(c => c.id_padre);
+
+            this.refrescarVista();
+        } catch (error) {
+            console.error('Error al recargar:', error);
+        }
+    },
     // --- LÓGICA DE INTERFAZ Y EVENTOS (Mantenida intacta) ---
 
     activarPestanaSubcategorias() {
@@ -141,7 +154,7 @@ export const categoriasController = {
         const btnSub = document.getElementById('tab-subcategorias');
         const secCat = document.getElementById('seccion-categorias');
         const secSub = document.getElementById('seccion-subcategorias');
-        
+
         if (!btnCat || !btnSub) return;
 
         btnCat.onclick = () => {
