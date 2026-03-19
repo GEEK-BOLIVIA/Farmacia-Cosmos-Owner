@@ -1,4 +1,3 @@
-// CORRECCIÓN DE RUTA: Subimos un nivel para encontrar la carpeta modals
 import { productManager } from '../modals/createProduct.js';
 import { PaginationHelper } from '../utils/paginationHelper.js';
 
@@ -11,7 +10,6 @@ export const productoView = {
         filasPorPagina: 10
     },
 
-    // --- MÉTODOS DE NOTIFICACIÓN ---
     notificarExito(mensaje) {
         Swal.fire({
             icon: 'success',
@@ -55,22 +53,18 @@ export const productoView = {
         return coloresSeguros[Math.abs(hash) % coloresSeguros.length];
     },
 
-    /**
-     * RENDER PRINCIPAL
-     */
-    /**
-     * RENDER PRINCIPAL
-     */
     render(productos, todasLasCategorias = []) {
         const contenedor = document.getElementById('content-area');
         if (!contenedor) return;
 
-        // --- PRESERVACIÓN DE FOCO ---
         const activeElementId = document.activeElement ? document.activeElement.id : null;
         const cursorPosition = document.activeElement ? document.activeElement.selectionStart : null;
 
         if (todasLasCategorias.length > 0) {
-            this._categoriasDisponibles = todasLasCategorias.map(c => c.nombre || c).filter(Boolean);
+            // ✅ Mostrar TODAS las categorías (padres e hijas) en el buscador de filtros
+            this._categoriasDisponibles = [
+                ...new Set(todasLasCategorias.map(c => c.nombre).filter(Boolean))
+            ].sort();
             this._maestroCategorias = todasLasCategorias;
         } else {
             this._categoriasDisponibles = [...new Set(productos.map(p => p.nombre_categoria).filter(Boolean))];
@@ -97,19 +91,19 @@ export const productoView = {
 
                 <div class="bg-slate-50/50 p-6 rounded-[32px] border border-slate-100 mb-6 space-y-4">
                     <div class="flex flex-wrap items-center gap-4">
-                        <div class="relative flex-1 min-w-[280px]">
-                            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                        <div class="relative flex items-center flex-1 min-w-[280px]">
+                            <span class="material-symbols-outlined absolute left-4 text-slate-400">search</span>
                             <input type="text" 
                                    id="main-search-input"
                                    oninput="productoView.gestionarBusqueda(this.value)" 
                                    value="${this._estado.busqueda}"
                                    class="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-12 text-sm outline-none focus:ring-2 focus:ring-blue-500/10 font-medium transition-all" 
                                    placeholder="Buscar por nombre, categoría o subcategoría...">
-                            ${this._estado.busqueda ? `
-                                <button onclick="productoView.limpiarBusquedaRapida()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition-colors">
-                                    <span class="material-symbols-outlined text-lg">cancel</span>
-                                </button>
-                            ` : ''}
+                            <button id="btn-limpiar-main-search"
+                                    onclick="productoView.limpiarBusquedaRapida()"
+                                    class="${this._estado.busqueda ? '' : 'hidden'} absolute right-4 text-slate-300 hover:text-red-500 transition-colors flex items-center justify-center">
+                                <span class="material-symbols-outlined text-lg">cancel</span>
+                            </button>
                         </div>
 
                         <div class="relative w-full md:w-80">
@@ -133,10 +127,10 @@ export const productoView = {
                             </button>
 
                             <button onclick="configuracionColumnasController.iniciarFlujoConfiguracion('productos', (cols) => productoController.refrescarVista(cols))" 
-        title="Configurar visibilidad de columnas"
-        class="w-[48px] h-[48px] flex items-center justify-center bg-white border border-slate-200 text-slate-900 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
-    <span class="material-symbols-outlined text-[22px]">view_column</span>
-</button>
+                                    title="Configurar visibilidad de columnas"
+                                    class="w-[48px] h-[48px] flex items-center justify-center bg-white border border-slate-200 text-slate-900 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+                                <span class="material-symbols-outlined text-[22px]">view_column</span>
+                            </button>
                         </div>
                     </div>
 
@@ -178,7 +172,6 @@ export const productoView = {
             </div>
         `;
 
-        // RE-APLICAR FOCO Y POSICIÓN DEL CURSOR TRAS EL RENDER
         if (activeElementId) {
             setTimeout(() => {
                 const element = document.getElementById(activeElementId);
@@ -191,7 +184,6 @@ export const productoView = {
             }, 0);
         }
 
-        // Listener para cerrar paneles de sugerencias al hacer clic fuera
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('suggestions-panel');
             const input = document.getElementById('category-search-input');
@@ -200,7 +192,7 @@ export const productoView = {
             }
         });
     },
-    // --- TABLA Y FILAS ---
+
     _generarFilas(datos) {
         const inicio = (this._estado.paginaActual - 1) * this._estado.filasPorPagina;
         const paged = datos.slice(inicio, inicio + this._estado.filasPorPagina);
@@ -239,10 +231,10 @@ export const productoView = {
                                     class="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
-                           <button onclick="productoController.verDetalle('${p.id}')" 
-        class="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
-    <span class="material-symbols-outlined text-sm">visibility</span>
-</button>
+                            <button onclick="productoController.verDetalle('${p.id}')" 
+                                    class="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-sm">visibility</span>
+                            </button>
                             <button onclick="productoView.confirmarEliminacion('${dataEnc}')" 
                                     class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-all shadow-sm">
                                 <span class="material-symbols-outlined text-sm">delete</span>
@@ -306,20 +298,15 @@ export const productoView = {
 
     confirmarCambioSwitch(id, campo, valorActual, esGlobal, nombre) {
         const nuevoEstado = !valorActual;
-
-        // --- LÓGICA DINÁMICA DE TEXTOS ---
         const esWhatsApp = campo === 'ws_active' || campo === 'habilitar_whatsapp';
         const etiquetaFeature = esWhatsApp ? 'WhatsApp' : 'Precio';
         const accionClave = nuevoEstado ? 'ACTIVAR' : 'DESACTIVAR';
-        const preposicion = nuevoEstado ? 'el' : 'el'; // Ajuste gramatical si fuera necesario
 
         let titulo, mensaje;
 
         if (esGlobal) {
             const fuenteDatos = window.productosRaw || [];
             const filtrados = this._filtrarDatos(fuenteDatos);
-
-            // CONTEO INTELIGENTE: Solo los que están en el estado opuesto al deseado
             const productosAActualizar = filtrados.filter(p => p[campo] !== nuevoEstado);
             const cantidad = productosAActualizar.length;
             const idsParaActualizar = productosAActualizar.map(p => p.id);
@@ -335,7 +322,6 @@ export const productoView = {
             }
 
             titulo = `<span class="text-blue-600 font-black uppercase text-xs">¿${accionClave} UNIVERSAL?</span>`;
-            // Mensaje dinámico según el campo y la cantidad
             mensaje = `Se han detectado <b>${cantidad}</b> productos con <b>${etiquetaFeature}</b> ${nuevoEstado ? 'apagado' : 'encendido'}. <br> ¿Deseas ${accionClave.toLowerCase()}los todos?`;
 
             Swal.fire({
@@ -358,7 +344,6 @@ export const productoView = {
                 }
             });
         } else {
-            // MENSAJE INDIVIDUAL DINÁMICO
             titulo = `<span class="text-slate-800 font-black uppercase text-xs">Confirmar cambio</span>`;
             mensaje = `¿Deseas ${accionClave.toLowerCase()} <b>${etiquetaFeature}</b> para <b>${nombre.toUpperCase()}</b>?`;
 
@@ -383,15 +368,11 @@ export const productoView = {
             });
         }
     },
+
     confirmarEliminacion(dataEncoded) {
         try {
-            // Decodificamos los datos para obtener el ID
             const p = JSON.parse(decodeURIComponent(escape(atob(dataEncoded))));
-
-            // En lugar de mostrar el SweetAlert aquí, 
-            // delegamos la responsabilidad al controlador para que use la nueva vista.
             productoController.eliminar(p.id);
-
         } catch (error) {
             console.error("Error al procesar datos para eliminación:", error);
             this.notificarError('No se pudo procesar la solicitud de eliminación.');
@@ -411,35 +392,42 @@ export const productoView = {
     _renderEtiquetasFiltro() {
         if (this._estado.categoriasSeleccionadas.length === 0) return '';
         return `
-            <div class="flex flex-wrap items-center gap-2 animate-fade-in">
-                <span class="text-[10px] font-black text-slate-400 uppercase mr-2">Filtros Activos:</span>
-                ${this._estado.categoriasSeleccionadas.map(cat => `
-                    <div class="flex items-center gap-2 bg-blue-600 text-white pl-3 pr-1 py-1 rounded-full text-[11px] font-bold shadow-sm">
-                        ${cat.toUpperCase()}
-                        <button onclick="productoView.quitarFiltroCategoria('${cat}')" class="hover:bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center transition-colors">
-                            <span class="material-symbols-outlined text-sm">close</span>
-                        </button>
-                    </div>
-                `).join('')}
-                <button onclick="productoView.limpiarFiltros()" class="text-[10px] font-black text-red-500 hover:text-red-700 uppercase ml-2 underline">Limpiar Todo</button>
-            </div>
-        `;
+        <div class="flex flex-wrap items-center gap-2 animate-fade-in">
+            <span class="text-[10px] font-black text-slate-400 uppercase mr-2">Filtros Activos:</span>
+            ${this._estado.categoriasSeleccionadas.map(cat => `
+                <div class="flex items-center gap-2 bg-blue-600 text-white pl-3 pr-1 py-1 rounded-full text-[11px] font-bold shadow-sm">
+                    ${this._capitalizarPrimera(cat)}
+                    <button onclick="productoView.quitarFiltroCategoria('${cat}')" class="hover:bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center transition-colors">
+                        <span class="material-symbols-outlined text-sm">close</span>
+                    </button>
+                </div>
+            `).join('')}
+            <button onclick="productoView.limpiarFiltros()" class="text-[10px] font-black text-red-500 hover:text-red-700 uppercase ml-2 underline">Limpiar Todo</button>
+        </div>
+    `;
+    },
+    _capitalizarPrimera(texto) {
+        if (!texto) return '';
+        return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
     },
 
     filtrarSugerencias(query) {
         const panel = document.getElementById('suggestions-panel');
         if (!panel) return;
+
         const coincidencias = this._categoriasDisponibles.filter(cat =>
             cat.toLowerCase().includes(query.toLowerCase()) &&
             !this._estado.categoriasSeleccionadas.includes(cat)
         );
+
         if (coincidencias.length > 0) {
             panel.classList.remove('hidden');
             panel.innerHTML = coincidencias.map(cat => `
-                <div onclick="productoView.agregarFiltroCategoria('${cat}')" class="px-4 py-3 hover:bg-blue-50 rounded-xl cursor-pointer text-sm font-medium text-slate-700 transition-colors">
-                    ${cat}
-                </div>
-            `).join('');
+            <div onclick="productoView.agregarFiltroCategoria('${cat}')" 
+                 class="px-4 py-3 hover:bg-blue-50 rounded-xl cursor-pointer text-sm font-medium text-slate-700 transition-colors">
+                ${this._capitalizarPrimera(cat)}
+            </div>
+        `).join('');
         } else {
             panel.classList.remove('hidden');
             panel.innerHTML = `<div class="p-4 text-xs font-bold text-slate-400 text-center">Sin resultados</div>`;
@@ -447,8 +435,11 @@ export const productoView = {
         }
     },
 
+
+    // ✅ Filtrado corregido para múltiples categorías por producto
     _filtrarDatos(d) {
         let resultados = [...d];
+
         if (this._estado.busqueda) {
             const t = this._estado.busqueda.toLowerCase();
             resultados = resultados.filter(x =>
@@ -457,13 +448,20 @@ export const productoView = {
                 (x.categoria_padre_nombre && x.categoria_padre_nombre.toLowerCase().includes(t))
             );
         }
+
         if (this._estado.categoriasSeleccionadas.length > 0) {
-            resultados = resultados.filter(x =>
-                this._estado.categoriasSeleccionadas.includes(x.nombre_categoria) ||
-                this._estado.categoriasSeleccionadas.includes(x.categoria_nombre) ||
-                this._estado.categoriasSeleccionadas.includes(x.categoria_padre_nombre)
-            );
+            resultados = resultados.filter(x => {
+                const todasCats = x._todas_categorias || [];
+                const todosPadres = x._todos_padres || [];
+
+                // ✅ El producto aparece si CUALQUIERA de sus categorías o padres coincide
+                return this._estado.categoriasSeleccionadas.some(seleccionada =>
+                    todasCats.includes(seleccionada) ||
+                    todosPadres.includes(seleccionada)
+                );
+            });
         }
+
         return resultados;
     },
 
@@ -476,7 +474,6 @@ export const productoView = {
         );
     },
 
-    // --- ACCIONES DIRECTAS ---
     agregarFiltroCategoria(cat) {
         if (!this._estado.categoriasSeleccionadas.includes(cat)) {
             this._estado.categoriasSeleccionadas.push(cat);
@@ -485,13 +482,48 @@ export const productoView = {
             productoController.refrescarVista();
         }
     },
-    quitarFiltroCategoria(cat) { this._estado.categoriasSeleccionadas = this._estado.categoriasSeleccionadas.filter(c => c !== cat); productoController.refrescarVista(); },
-    limpiarFiltros() { this._estado.categoriasSeleccionadas = []; this._estado.busqueda = ''; productoController.refrescarVista(); },
+
+    quitarFiltroCategoria(cat) {
+        this._estado.categoriasSeleccionadas = this._estado.categoriasSeleccionadas.filter(c => c !== cat);
+        productoController.refrescarVista();
+    },
+
+    limpiarFiltros() {
+        this._estado.categoriasSeleccionadas = [];
+        this._estado.busqueda = '';
+        productoController.refrescarVista();
+    },
+
     verFichaDetalle(id) { productoController.verDetalle(id); },
-    gestionarBusqueda(v) { this._estado.busqueda = v; this._estado.paginaActual = 1; productoController.refrescarVista(); },
-    gestionarOrden() { this._estado.orden = this._estado.orden === 'asc' ? 'desc' : 'asc'; productoController.refrescarVista(); },
-    cambiarPagina(p) { this._estado.paginaActual = p; productoController.refrescarVista(); },
-    _ordenarDatos(d) { return [...d].sort((a, b) => this._estado.orden === 'asc' ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre)); }
+
+    gestionarBusqueda(v) {
+        this._estado.busqueda = v;
+        this._estado.paginaActual = 1;
+
+        // ✅ Mostrar/ocultar X sin recargar todo
+        const btnLimpiar = document.getElementById('btn-limpiar-main-search');
+        if (btnLimpiar) btnLimpiar.classList.toggle('hidden', !v);
+
+        productoController.refrescarVista();
+    },
+
+    gestionarOrden() {
+        this._estado.orden = this._estado.orden === 'asc' ? 'desc' : 'asc';
+        productoController.refrescarVista();
+    },
+
+    cambiarPagina(p) {
+        this._estado.paginaActual = p;
+        productoController.refrescarVista();
+    },
+
+    _ordenarDatos(d) {
+        return [...d].sort((a, b) =>
+            this._estado.orden === 'asc'
+                ? a.nombre.localeCompare(b.nombre)
+                : b.nombre.localeCompare(a.nombre)
+        );
+    }
 };
 
 window.productoView = productoView;

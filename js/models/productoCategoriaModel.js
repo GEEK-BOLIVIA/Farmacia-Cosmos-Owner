@@ -1,16 +1,7 @@
 import { supabase } from '../config/supabaseClient.js';
 
-/**
- * Modelo para la tabla intermedia producto_categorias_rel
- * Maneja la relación Muchos a Muchos entre Productos y Categorías.
- */
 export const productoCategoriaModel = {
 
-    /**
-     * Vincula un producto con una categoría.
-     * @param {number} productoId 
-     * @param {number} categoriaId 
-     */
     async vincular(productoId, categoriaId) {
         try {
             const { error } = await supabase
