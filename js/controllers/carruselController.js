@@ -249,3 +249,4 @@ export const carruselController = {
 };
 
 window.carruselController = carruselController;
+window.RegisterCarrusel = RegisterCarrusel;

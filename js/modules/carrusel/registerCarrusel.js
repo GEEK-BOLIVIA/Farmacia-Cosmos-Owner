@@ -18,6 +18,13 @@ export const RegisterCarrusel = {
         window.RegisterCarrusel = this;
 
         this.updateUI();
+
+        // ✅ Solo para carruseles nuevos: calcular orden automático con el slug por defecto
+        if (!this._isEdit) {
+            const slugInicial = carruselState.config.ubicacion_slug || 'home-top';
+            await this.actualizarOrdenAutomatico(slugInicial);
+        }
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 

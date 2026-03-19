@@ -90,74 +90,123 @@ export const carruselController_View = {
         });
 
         try {
-            let datos = await carruselController.cargarCarruseles();
-            let datosFiltrados = this._ordenarDatos(this._filtrarDatos(datos));
-
-            const inicio = (this._estado.paginaActual - 1) * this._estado.filasPorPagina;
-            const fin = inicio + this._estado.filasPorPagina;
-            const datosPaginados = datosFiltrados.slice(inicio, fin);
-
+            // ✅ Guardamos los datos en memoria para el filtrado rápido
+            this._datosCargados = await carruselController.cargarCarruseles();
             Swal.close();
-
-            contenedor.innerHTML = `
-                <div class="p-8 animate-fade-in max-h-[calc(100vh-64px)] overflow-y-auto">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                        <div>
-                            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Carruseles y Banners</h1>
-                            <p class="text-slate-500 text-sm">Gestiona la publicidad y colecciones de la página principal.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-                        <div class="flex items-center gap-3 w-full md:w-auto">
-                            <div class="relative flex-1 md:w-64">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-                                <input type="text"
-                                       placeholder="Buscar carrusel..."
-                                       value="${this._estado.busqueda}"
-                                       oninput="carruselController_View.gestionarBusqueda(this.value)"
-                                       class="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
-                            </div>
-                            <button onclick="carruselController_View.gestionarOrden()"
-                                    class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-blue-600 transition-all shadow-sm font-bold text-sm">
-                                <span class="material-symbols-outlined text-lg">${this._estado.orden === 'asc' ? 'sort_by_alpha' : 'text_rotate_vertical'}</span>
-                                ${this._estado.orden === 'asc' ? 'A-Z' : 'Z-A'}
-                            </button>
-                        </div>
-                        <button onclick="RegisterCarrusel.init('content-area')"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md font-bold text-sm flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[20px]">add</span> Nuevo Carrusel
-                        </button>
-                    </div>
-
-                    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden mb-8">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse table-auto">
-                                <thead>
-                                    <tr class="bg-slate-50/80 border-b border-slate-200">
-                                        <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase w-24 text-center">N°</th>
-                                        <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center min-w-[200px]">Nombre / Descripción</th>
-                                        <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center min-w-[150px]">Ubicación</th>
-                                        <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center min-w-[120px]">Tipo</th>
-                                        <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center w-64">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    ${datosPaginados.length > 0
-                                        ? datosPaginados.map((item, index) => this._crearFila(item, inicio + index)).join('')
-                                        : `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic text-sm">No se encontraron carruseles</td></tr>`
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>`;
+            this._renderEstructura(contenedor);
+            this._actualizarTabla(); // Renderiza la tabla por separado
         } catch (error) {
             Swal.close();
             this.notificarError("Error al conectar con el servidor.");
         }
     },
 
+    _renderEstructura(contenedor) {
+        contenedor.innerHTML = `
+        <div class="p-8 animate-fade-in max-h-[calc(100vh-64px)] overflow-y-auto">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Carruseles y Banners</h1>
+                    <p class="text-slate-500 text-sm">Gestiona la publicidad y colecciones de la página principal.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="relative flex items-center flex-1 md:w-64">
+                        <span class="material-symbols-outlined absolute left-3 text-slate-400 text-lg">search</span>
+                        <input type="text"
+                            id="input-busqueda-carrusel"
+                            placeholder="Buscar carrusel..."
+                            value="${this._estado.busqueda}"
+                            oninput="carruselController_View.gestionarBusqueda(this.value)"
+                            class="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-9 text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium">
+                        <button id="btn-limpiar-busqueda"
+                                onclick="carruselController_View.limpiarBusqueda()"
+                                class="${this._estado.busqueda ? '' : 'hidden'} absolute right-3 text-slate-300 hover:text-red-400 transition-colors flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[18px]">cancel</span>
+                        </button>
+                    </div>
+                    <button onclick="carruselController_View.gestionarOrden()"
+                            id="btn-orden-carrusel"
+                            class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-blue-600 transition-all shadow-sm font-bold text-sm">
+                        <span class="material-symbols-outlined text-lg">${this._estado.orden === 'asc' ? 'sort_by_alpha' : 'text_rotate_vertical'}</span>
+                        ${this._estado.orden === 'asc' ? 'A-Z' : 'Z-A'}
+                    </button>
+                </div>
+                <button onclick="RegisterCarrusel.init('content-area')"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md font-bold text-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[20px]">add</span> Nuevo Carrusel
+                </button>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden mb-8">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse table-auto">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-200">
+                                <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase w-24 text-center">N°</th>
+                                <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center min-w-[200px]">Nombre / Descripción</th>
+                                <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center min-w-[150px]">Ubicación</th>
+                                <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center min-w-[120px]">Tipo</th>
+                                <th class="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase text-center w-64">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-carruseles" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+    },
+    // ✅ Nuevo: solo actualiza el tbody sin tocar el input
+    _actualizarTabla() {
+        const tbody = document.getElementById('tbody-carruseles');
+        if (!tbody) return;
+
+        const datosFiltrados = this._ordenarDatos(this._filtrarDatos(this._datosCargados || []));
+        const inicio = (this._estado.paginaActual - 1) * this._estado.filasPorPagina;
+        const datosPaginados = datosFiltrados.slice(inicio, inicio + this._estado.filasPorPagina);
+
+        tbody.innerHTML = datosPaginados.length > 0
+            ? datosPaginados.map((item, index) => this._crearFila(item, inicio + index)).join('')
+            : `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic text-sm">No se encontraron carruseles</td></tr>`;
+    },
+
+    gestionarBusqueda(valor) {
+        this._estado.busqueda = valor;
+        this._estado.paginaActual = 1;
+
+        // ✅ Muestra u oculta la X según si hay texto
+        const btnLimpiar = document.getElementById('btn-limpiar-busqueda');
+        if (btnLimpiar) btnLimpiar.classList.toggle('hidden', !valor);
+
+        this._actualizarTabla();
+    },
+
+    limpiarBusqueda() {
+        this._estado.busqueda = '';
+        this._estado.paginaActual = 1;
+
+        const input = document.getElementById('input-busqueda-carrusel');
+        const btnLimpiar = document.getElementById('btn-limpiar-busqueda');
+
+        if (input) { input.value = ''; input.focus(); }
+        if (btnLimpiar) btnLimpiar.classList.add('hidden');
+
+        this._actualizarTabla();
+    },
+
+    gestionarOrden() {
+        this._estado.orden = this._estado.orden === 'asc' ? 'desc' : 'asc';
+        // ✅ Actualiza el botón sin recargar todo
+        const btn = document.getElementById('btn-orden-carrusel');
+        if (btn) {
+            btn.innerHTML = `
+            <span class="material-symbols-outlined text-lg">${this._estado.orden === 'asc' ? 'sort_by_alpha' : 'text_rotate_vertical'}</span>
+            ${this._estado.orden === 'asc' ? 'A-Z' : 'Z-A'}`;
+        }
+        this._actualizarTabla();
+    },
     _crearFila(item, index) {
         return `
             <tr class="hover:bg-blue-50/40 transition-colors group">
@@ -273,17 +322,6 @@ export const carruselController_View = {
             return this._estado.orden === 'asc' ? nombreA.localeCompare(nombreB) : nombreB.localeCompare(nombreA);
         });
     },
-
-    gestionarBusqueda(valor) {
-        this._estado.busqueda = valor;
-        this._estado.paginaActual = 1;
-        this.render();
-    },
-
-    gestionarOrden() {
-        this._estado.orden = this._estado.orden === 'asc' ? 'desc' : 'asc';
-        this.render();
-    }
 };
 
 window.carruselController_View = carruselController_View;
