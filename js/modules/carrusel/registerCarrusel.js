@@ -50,11 +50,16 @@ export const RegisterCarrusel = {
     pedirUrlImagen() { carruselActions.pedirUrlImagen(); },
 
     cerrarYRefrescar() {
-        if (this._container && this._originalContent) this._container.innerHTML = this._originalContent;
+        if (this._container && this._originalContent) {
+            this._container.innerHTML = this._originalContent;
+        }
+        // ✅ Limpiar referencia para que popstate no la detecte como activa
+        this._container = null;
+        this._originalContent = null;
+
         if (window.carruselController_View) window.carruselController_View.render();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-
     agregarItemALista() {
         const itemCapturado = carruselActions.capturarItem();
         if (!itemCapturado) return;

@@ -22,10 +22,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const sesionActiva = await verificarAcceso();
-    if (!sesionActiva) return; // Detiene la ejecución si no está autorizado
+    if (!sesionActiva) return;
+    // ✅ CONTROL DEL BOTÓN ATRÁS DEL NAVEGADOR
+    // Reemplaza la entrada actual del historial con administracion.html
+    // para que el "atrás" no lleve a index.html
+    history.replaceState({ page: 'admin' }, '', window.location.href);
 
+    // Cada vez que el usuario navega dentro del panel, agregamos una entrada
+    // "ficticia" al historial para absorber el botón atrás
+    history.pushState({ page: 'admin' }, '', window.location.href);
+
+    window.addEventListener('popstate', (e) => {
+        history.pushState({ page: 'admin' }, '', window.location.href);
+
+        // ✅ Verificar productManager activo — _resolve pendiente indica formulario abierto
+        const productManagerActivo = window.productManager?._resolve !== null &&
+            window.productManager?._mainContainer !== null &&
+            document.querySelector('[onclick*="productManager.cancelarEdicion"]') !== null;
+
+        if (productManagerActivo) {
+            window.productManager.cancelarEdicion();
+            return;
+        }
+
+        // ✅ Verificar RegisterCarrusel activo en el DOM
+        const carruselActivo = window.RegisterCarrusel?._container &&
+            document.body.contains(window.RegisterCarrusel._container) &&
+            window.RegisterCarrusel._container.id === 'content-area';
+
+        if (carruselActivo) {
+            window.RegisterCarrusel.cancelarEdicion();
+            return;
+        }
+
+        // ✅ Si hay un Swal abierto, cerrarlo
+        if (Swal.isVisible()) {
+            Swal.close();
+            return;
+        }
+    });
     // --- 0.1 CARGAR DATOS DEL USUARIO EN LA UI ---
-   // --- CARGAR DATOS DEL USUARIO EN LA UI ---
+    // --- CARGAR DATOS DEL USUARIO EN LA UI ---
     const perfil = sesionActiva.perfil;
     const userNameDisplay = document.querySelector('.sidebar-hide p.text-slate-800.text-sm.font-bold');
     const userRoleDisplay = document.querySelector('.sidebar-hide p.text-slate-500.text-\\[11px\\]');
@@ -263,4 +300,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             elementoActivo.classList.add('bg-blue-50', 'text-blue-600');
         }
     }
+    // ✅ Función global para resetear estilos activos del sidebar de categorías
+    window.resetearSidebarActivo = function () {
+        const summaryCatClase = 'flex items-center justify-between rounded-lg px-3 py-2.5 transition-all cursor-pointer list-none text-slate-500 hover:bg-blue-50 hover:text-blue-600';
+        const claseInactivoDiv = 'flex items-center gap-3 flex-1';
+
+        ['sidebar-details-categorias', 'sidebar-details-subcategorias'].forEach(id => {
+            const details = document.getElementById(id);
+            if (!details) return;
+            details.removeAttribute('open');
+            const summary = details.querySelector('summary');
+            const div = summary?.querySelector('div');
+            if (summary) summary.className = summaryCatClase;
+            if (div) div.className = claseInactivoDiv;
+        });
+    };
 });

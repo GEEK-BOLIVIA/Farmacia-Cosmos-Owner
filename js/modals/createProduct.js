@@ -784,24 +784,35 @@ export const productManager = {
 
     cancelarEdicion() {
         Swal.fire({
-            title: '¿Está Seguro de Salir?', text: 'Se perderán los cambios que no hayas guardado.',
-            icon: 'warning', showCancelButton: true,
-            confirmButtonColor: '#2563eb', cancelButtonColor: '#64748b',
-            confirmButtonText: 'SÍ, VOLVER AL LISTADO', cancelButtonText: 'CONTINUAR EDITANDO',
+            title: '¿Está Seguro de Salir?',
+            text: 'Se perderán los cambios que no hayas guardado.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'SÍ, VOLVER AL LISTADO',
+            cancelButtonText: 'CONTINUAR EDITANDO',
             reverseButtons: true,
-            customClass: { confirmButton: 'rounded-2xl font-black text-[10px] uppercase px-8 py-4', cancelButton: 'rounded-2xl font-black text-[10px] uppercase px-8 py-4' }
+            customClass: {
+                confirmButton: 'rounded-2xl font-black text-[10px] uppercase px-8 py-4',
+                cancelButton: 'rounded-2xl font-black text-[10px] uppercase px-8 py-4'
+            }
         }).then(r => {
             if (r.isConfirmed) {
                 if (this._mainContainer) this._mainContainer.innerHTML = this._originalContent;
                 this._galeriaArchivos = [];
                 this._portadaArchivo = { tipo: 'local', data: null, url: '' };
                 this._categoriasSeleccionadas = [];
-                this._pasoActual = 1; this._searchTerm = '';
+                this._pasoActual = 1;
+                this._searchTerm = '';
+                // ✅ Limpiar referencias para que popstate no lo detecte como activo
+                this._mainContainer = null;
+                this._originalContent = null;
                 if (typeof this._resolve === 'function') this._resolve(null);
+                this._resolve = null; // ✅ Limpiar resolve
             }
         });
     },
-
     injectStyles() {
         if (document.getElementById('nexus-pm-styles')) return;
         const s = document.createElement('style');

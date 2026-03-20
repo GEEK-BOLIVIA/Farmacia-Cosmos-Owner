@@ -18,22 +18,24 @@ export const categoriasController = {
 
     async inicializar(pestanaPorDefecto = 'categorias') {
         try {
-            // Usamos la notificación de la vista para mantener consistencia visual
+            categoriasView._estado.seleccionados = [];
+            categoriasView._actualizarBarraFlotante();
             categoriasView.mostrarCargando('Cargando catálogo...');
 
-            // 1. Cargar configuración de columnas
-            this._colsPadres = await configuracionColumnasController.obtenerColumnasVisibles(this.REF_PADRES, ['nombre']);
-            this._colsHijos = await configuracionColumnasController.obtenerColumnasVisibles(this.REF_HIJOS, ['nombre', 'categoria_padre']);
+            // ✅ Todo en paralelo — antes eran 3 consultas secuenciales
+            const [colsPadres, colsHijos, todas] = await Promise.all([
+                configuracionColumnasController.obtenerColumnasVisibles(this.REF_PADRES, ['nombre']),
+                configuracionColumnasController.obtenerColumnasVisibles(this.REF_HIJOS, ['nombre', 'categoria_padre']),
+                categoriasModel.obtenerTodas()
+            ]);
 
-            // 2. Cargar datos desde el modelo
-            const todas = await categoriasModel.obtenerTodas();
+            this._colsPadres = colsPadres;
+            this._colsHijos = colsHijos;
             this._datosPadres = todas.filter(c => !c.id_padre);
             this._datosHijos = todas.filter(c => c.id_padre);
 
-            // 3. Sincronizar la pestaña en el estado de la vista
             categoriasView._estado.pestanaActiva = pestanaPorDefecto;
 
-            // 4. Renderizar
             this.refrescarVista();
 
             Swal.close();
@@ -42,7 +44,6 @@ export const categoriasController = {
             categoriasView.notificarError('No se pudieron cargar los datos.');
         }
     },
-
     /**
      * REFRESCO DE VISTA
      */
@@ -124,10 +125,14 @@ export const categoriasController = {
     // ✅ Nuevo: recarga datos en segundo plano sin mostrar spinner
     async _recargarSilencioso() {
         try {
-            this._colsPadres = await configuracionColumnasController.obtenerColumnasVisibles(this.REF_PADRES, ['nombre']);
-            this._colsHijos = await configuracionColumnasController.obtenerColumnasVisibles(this.REF_HIJOS, ['nombre', 'categoria_padre']);
+            const [colsPadres, colsHijos, todas] = await Promise.all([
+                configuracionColumnasController.obtenerColumnasVisibles(this.REF_PADRES, ['nombre']),
+                configuracionColumnasController.obtenerColumnasVisibles(this.REF_HIJOS, ['nombre', 'categoria_padre']),
+                categoriasModel.obtenerTodas()
+            ]);
 
-            const todas = await categoriasModel.obtenerTodas();
+            this._colsPadres = colsPadres;
+            this._colsHijos = colsHijos;
             this._datosPadres = todas.filter(c => !c.id_padre);
             this._datosHijos = todas.filter(c => c.id_padre);
 

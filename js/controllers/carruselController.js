@@ -9,6 +9,8 @@ import { carruselState } from '../modules/carrusel/carruselState.js';
 export const carruselController = {
 
     async inicializar() {
+        window.resetearSidebarActivo?.();
+        carruselController_View._estado.seleccionados = [];
         await carruselController_View.render();
     },
 

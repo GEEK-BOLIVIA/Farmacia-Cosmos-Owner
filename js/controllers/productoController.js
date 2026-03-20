@@ -85,6 +85,8 @@ export const productoController = {
     },
 
     async inicializar() {
+        window.resetearSidebarActivo?.();
+        productoView._estado.seleccionados = [];
         productoView.mostrarCargando?.('Sincronizando inventario...');
         try {
             await this.refrescarVista();
@@ -191,10 +193,19 @@ export const productoController = {
      */
     async mostrarFormularioCrear() {
         try {
+            Swal.fire({
+                title: '<span class="text-slate-800 font-black uppercase text-sm">Preparando formulario...</span>',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                customClass: { popup: 'rounded-[32px] shadow-xl' }
+            });
+
             const [, categoriasHijas] = await Promise.all([
                 categoriasModel.obtenerTodas(),
                 categoriasModel.obtenerHijas()
             ]);
+
+            Swal.close();
 
             const datosForm = await productManager.start('content-area', categoriasHijas);
             if (!datosForm) return;
@@ -243,12 +254,21 @@ export const productoController = {
      */
     async mostrarFormularioEditar(id) {
         try {
+            Swal.fire({
+                title: '<span class="text-slate-800 font-black uppercase text-sm">Cargando producto...</span>',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                customClass: { popup: 'rounded-[32px] shadow-xl' }
+            });
+
             const [producto, categoriasHijas, categoriasVinculadas, galeriaActual] = await Promise.all([
                 productoModel.obtenerPorId(id),
                 categoriasModel.obtenerHijas(),
                 productoCategoriaModel.obtenerCategoriasPorProducto(id),
                 galeriaProductoModel.getByProducto(id)
             ]);
+
+            Swal.close();
 
             if (!producto) throw new Error('Producto no encontrado');
 

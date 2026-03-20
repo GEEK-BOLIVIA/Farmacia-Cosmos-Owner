@@ -407,28 +407,38 @@ export const categoriasView = {
     },
 
     cambiarTab(idTab) {
-        this._estado.pestanaActiva = idTab;
+        // ✅ Limpiar selección ANTES de cambiar tab
         this._estado.seleccionados = [];
+
+        // ✅ Limpiar checkboxes visibles
+        document.querySelectorAll('.cat-checkbox').forEach(cb => {
+            cb.checked = false;
+            const fila = cb.closest('tr');
+            if (fila) fila.classList.remove('bg-red-50/40');
+        });
+
+        this._estado.pestanaActiva = idTab;
 
         const secCat = document.getElementById('seccion-categorias');
         const secSub = document.getElementById('seccion-subcategorias');
         const esCat = idTab === 'categorias';
 
-        // ✅ Alternar visibilidad de secciones
         if (secCat) secCat.classList.toggle('hidden', !esCat);
         if (secSub) secSub.classList.toggle('hidden', esCat);
 
-        // ✅ Actualizar estilos de botones del tab interno
         const btnCat = document.getElementById('tab-btn-categorias');
         const btnSub = document.getElementById('tab-btn-subcategorias');
+
         const claseActivo = 'flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 bg-white text-blue-600 shadow-sm';
         const claseInactivo = 'flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 text-slate-500 hover:text-slate-700';
+
         if (btnCat) btnCat.className = esCat ? claseActivo : claseInactivo;
         if (btnSub) btnSub.className = !esCat ? claseActivo : claseInactivo;
 
-        // ✅ Sincronizar sidebar — abrir/cerrar details
+        // ✅ Sincronizar sidebar por ID directo
         const detailsCat = document.getElementById('sidebar-details-categorias');
         const detailsSub = document.getElementById('sidebar-details-subcategorias');
+
         if (esCat) {
             detailsCat?.setAttribute('open', '');
             detailsSub?.removeAttribute('open');
@@ -437,7 +447,6 @@ export const categoriasView = {
             detailsCat?.removeAttribute('open');
         }
 
-        // ✅ Actualizar estilos activo/inactivo en el summary del sidebar
         const summaryCat = detailsCat?.querySelector('summary');
         const summarySub = detailsSub?.querySelector('summary');
         const divCat = summaryCat?.querySelector('div');
@@ -453,6 +462,7 @@ export const categoriasView = {
         if (summaryCat) summaryCat.className = summaryCatClase + (esCat ? ' bg-blue-50 text-blue-600' : ' text-slate-500 hover:bg-blue-50 hover:text-blue-600');
         if (summarySub) summarySub.className = summaryCatClase + (!esCat ? ' bg-blue-50 text-blue-600' : ' text-slate-500 hover:bg-blue-50 hover:text-blue-600');
 
+        // ✅ Ocultar barra flotante y resetear checkbox header
         this._actualizarBarraFlotante();
         this._actualizarCheckboxHeader();
     },
