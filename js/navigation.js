@@ -78,12 +78,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 0.2 INICIALIZACIÓN AUTOMÁTICA DE PRODUCTOS ---
     try {
-        // Cargamos la vista de productos por defecto al entrar
         await productoController.inicializar();
+        // ✅ Buscar el summary padre del div con onclick de productos
+        const divProductos = document.querySelector('#main-sidebar details summary div[onclick*="productoController.inicializar"]');
+        const summaryProductos = divProductos?.closest('summary');
+        if (summaryProductos) actualizarEstadoActivo(summaryProductos);
     } catch (error) {
         console.error("Error al cargar productos iniciales:", error);
     }
-
     // --- 0.3 LÓGICA DE LOGOUT ---
     const btnLogout = document.querySelector('button[title="Cerrar Sesión"]');
     if (btnLogout) {
@@ -272,8 +274,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     function actualizarEstadoActivo(elementoActivo) {
         if (!elementoActivo) return;
 
-        const todosLosLinks = document.querySelectorAll('.nav-item, [id^="link-"], details button, summary');
-        todosLosLinks.forEach(i => {
+        // ✅ Limpiar todos los elementos navegables del sidebar
+        const selectores = [
+            '.nav-item',
+            '[id^="link-"]',
+            'details button',
+            'summary',
+            '#main-sidebar details > summary > div'
+        ];
+
+        document.querySelectorAll(selectores.join(', ')).forEach(i => {
             i.classList.remove(
                 'bg-blue-50', 'text-blue-600',
                 'bg-indigo-50', 'text-indigo-600',
@@ -281,14 +291,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'bg-emerald-50', 'text-emerald-600',
                 'bg-slate-100'
             );
-            i.classList.add('text-slate-500');
+            // ✅ Solo agregar text-slate-500 a elementos que no sean divs internos de summary
+            if (!i.matches('#main-sidebar details > summary > div')) {
+                i.classList.add('text-slate-500');
+            }
             const p = i.querySelector('p');
             if (p) p.classList.remove('text-blue-600');
         });
 
+        // ✅ También resetear los summaries de categorías al cambiar de sección
+        window.resetearSidebarActivo?.();
+
         elementoActivo.classList.remove('text-slate-500', 'text-slate-400');
         const id = elementoActivo.id || '';
-        const texto = elementoActivo.innerText.toLowerCase();
+        const texto = elementoActivo.innerText?.toLowerCase() || '';
 
         if (id === 'link-config-cliente') {
             elementoActivo.classList.add('bg-indigo-50', 'text-indigo-600');

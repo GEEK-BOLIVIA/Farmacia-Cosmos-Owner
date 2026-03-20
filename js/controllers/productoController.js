@@ -193,6 +193,8 @@ export const productoController = {
      */
     async mostrarFormularioCrear() {
         try {
+            productoView._estado.seleccionados = [];
+            productoView.limpiarSeleccion?.();
             Swal.fire({
                 title: '<span class="text-slate-800 font-black uppercase text-sm">Preparando formulario...</span>',
                 allowOutsideClick: false,
@@ -254,6 +256,8 @@ export const productoController = {
      */
     async mostrarFormularioEditar(id) {
         try {
+            productoView._estado.seleccionados = [];
+            productoView.limpiarSeleccion?.();
             Swal.fire({
                 title: '<span class="text-slate-800 font-black uppercase text-sm">Cargando producto...</span>',
                 allowOutsideClick: false,

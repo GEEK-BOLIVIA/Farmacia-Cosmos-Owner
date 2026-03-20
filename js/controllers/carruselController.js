@@ -10,30 +10,25 @@ export const carruselController = {
 
     async inicializar() {
         window.resetearSidebarActivo?.();
-        carruselController_View._estado.seleccionados = [];
+        if (window.carruselController_View) {
+            window.carruselController_View._estado.seleccionados = [];
+            window.carruselController_View.limpiarSeleccion?.();
+        }
         await carruselController_View.render();
     },
 
-    /**
-     * ✅ FIX: abrirEditor
-     *
-     * Problemas anteriores:
-     *  1. Sin feedback visual → usuario hacía doble clic pensando que no funcionó
-     *  2. Llamaba a cargarCarruseles() (query a toda la tabla) solo para obtener
-     *     un registro por ID — completamente innecesario
-     *
-     * Ahora:
-     *  - Muestra loading inmediatamente en el primer clic
-     *  - Carga config e items en PARALELO con Promise.all
-     *  - Cierra el loading antes de renderizar el formulario
-     */
     async abrirEditor(id = null) {
+        // ✅ Limpiar selección siempre al entrar al editor
+        if (window.carruselController_View) {
+            window.carruselController_View._estado.seleccionados = [];
+            window.carruselController_View.limpiarSeleccion?.();
+        }
+
         if (!id) {
             await RegisterCarrusel.init('content-area');
             return;
         }
 
-        // ✅ Feedback inmediato — evita el doble clic
         Swal.fire({
             title: '<span class="text-slate-800 font-black uppercase text-sm">Cargando editor...</span>',
             allowOutsideClick: false,
@@ -43,7 +38,6 @@ export const carruselController = {
         });
 
         try {
-            // ✅ Carga en paralelo: config del carrusel + sus items al mismo tiempo
             const [configResult, items] = await Promise.all([
                 supabase.from('carruseles').select('*').eq('id', id).single(),
                 carruselModel.obtenerItems(id)
@@ -51,14 +45,9 @@ export const carruselController = {
 
             if (configResult.error) throw configResult.error;
 
-            const datosCargar = {
-                id,
-                ...configResult.data,
-                items
-            };
+            const datosCargar = { id, ...configResult.data, items };
 
             Swal.close();
-
             await RegisterCarrusel.init('content-area', datosCargar);
 
         } catch (err) {

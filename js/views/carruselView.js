@@ -82,6 +82,9 @@ export const carruselController_View = {
         const contenedor = document.getElementById('content-area');
         if (!contenedor) return;
 
+        // ✅ Limpiar selección al re-renderizar la tabla
+        this._estado.seleccionados = [];
+
         Swal.fire({
             title: 'Cargando registros',
             html: 'Sincronizando con la base de datos...',

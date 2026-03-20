@@ -53,9 +53,14 @@ export const RegisterCarrusel = {
         if (this._container && this._originalContent) {
             this._container.innerHTML = this._originalContent;
         }
-        // ✅ Limpiar referencia para que popstate no la detecte como activa
+        // ✅ Limpiar referencias
         this._container = null;
         this._originalContent = null;
+
+        // ✅ Limpiar selección ANTES de re-renderizar
+        if (window.carruselController_View) {
+            window.carruselController_View._estado.seleccionados = [];
+        }
 
         if (window.carruselController_View) window.carruselController_View.render();
         window.scrollTo({ top: 0, behavior: 'smooth' });

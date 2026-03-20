@@ -80,6 +80,9 @@ export const categoriasController = {
     },
 
     async mostrarFormularioCreacion(tipo) {
+        categoriasView._estado.seleccionados = [];
+        categoriasView.limpiarSeleccion?.();
+
         categoriasView._estado.pestanaActiva = (tipo === 'padre') ? 'categorias' : 'subcategorias';
 
         const datos = await categoriasView.mostrarFormulario({
@@ -90,15 +93,22 @@ export const categoriasController = {
         if (datos) {
             const res = await categoriasModel.crear(datos);
             if (res.exito) {
-                categoriasView.notificarExito('Registro creado con éxito'); // ✅ Primero el éxito
-                await this._recargarSilencioso();                           // ✅ Luego recarga sin spinner
+                categoriasView.notificarExito('Registro creado con éxito');
+                await this._recargarSilencioso();
             } else {
                 categoriasView.notificarError('No se pudo crear el registro');
             }
+        } else {
+            // ✅ Usuario canceló — limpiar checkbox header igual
+            categoriasView._actualizarCheckboxHeader?.();
+            categoriasView._actualizarBarraFlotante?.();
         }
     },
 
     async editar(id) {
+        categoriasView._estado.seleccionados = [];
+        categoriasView.limpiarSeleccion?.();
+
         const registro = await categoriasModel.obtenerPorId(id);
         const padresDisponibles = this._datosPadres.filter(c => c.id !== id);
 
@@ -114,17 +124,23 @@ export const categoriasController = {
         if (nuevosDatos) {
             const res = await categoriasModel.actualizar(id, nuevosDatos);
             if (res.exito) {
-                categoriasView.notificarExito('Cambios guardados correctamente'); // ✅ Primero el éxito
-                await this._recargarSilencioso();                                 // ✅ Luego recarga sin spinner
+                categoriasView.notificarExito('Cambios guardados correctamente');
+                await this._recargarSilencioso();
             } else {
                 categoriasView.notificarError('Error al actualizar');
             }
+        } else {
+            // ✅ Usuario canceló — limpiar checkbox header igual
+            categoriasView._actualizarCheckboxHeader?.();
+            categoriasView._actualizarBarraFlotante?.();
         }
     },
 
-    // ✅ Nuevo: recarga datos en segundo plano sin mostrar spinner
     async _recargarSilencioso() {
         try {
+            // ✅ Limpiar selección antes de recargar
+            categoriasView._estado.seleccionados = [];
+
             const [colsPadres, colsHijos, todas] = await Promise.all([
                 configuracionColumnasController.obtenerColumnasVisibles(this.REF_PADRES, ['nombre']),
                 configuracionColumnasController.obtenerColumnasVisibles(this.REF_HIJOS, ['nombre', 'categoria_padre']),

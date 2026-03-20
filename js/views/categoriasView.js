@@ -53,6 +53,8 @@ export const categoriasView = {
     },
 
     render(datosPadres, columnasPadres, datosHijos, columnasHijos) {
+        this._estado.seleccionados = [];
+
         this._datosCargados = {
             padres: datosPadres,
             hijos: datosHijos,
