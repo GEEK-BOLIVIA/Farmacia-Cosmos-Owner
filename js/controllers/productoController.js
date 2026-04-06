@@ -212,14 +212,14 @@ export const productoController = {
                 customClass: { popup: 'rounded-[32px] shadow-xl' }
             });
 
-            const [, categoriasHijas] = await Promise.all([
-                categoriasModel.obtenerTodas(),
+            const [categoriasPadres, categoriasHijas] = await Promise.all([
+                categoriasModel.obtenerPadres(),
                 categoriasModel.obtenerHijas()
             ]);
 
             Swal.close();
 
-            const datosForm = await productManager.start('content-area', categoriasHijas);
+            const datosForm = await productManager.start('content-area', categoriasHijas, {}, categoriasPadres);
             if (!datosForm) return;
 
             this._mostrarProgreso(['Subiendo imágenes', 'Creando producto', 'Vinculando categorías']);
@@ -273,8 +273,9 @@ export const productoController = {
                 customClass: { popup: 'rounded-[32px] shadow-xl' }
             });
 
-            const [producto, categoriasHijas, categoriasVinculadas, galeriaActual] = await Promise.all([
+            const [producto, categoriasPadres, categoriasHijas, categoriasVinculadas, galeriaActual] = await Promise.all([
                 productoModel.obtenerPorId(id),
+                categoriasModel.obtenerPadres(),
                 categoriasModel.obtenerHijas(),
                 productoCategoriaModel.obtenerCategoriasPorProducto(id),
                 galeriaProductoModel.getByProducto(id)
@@ -287,6 +288,7 @@ export const productoController = {
             const productoParaEdicion = {
                 id: producto.id,
                 nombre: producto.producto_nombre || producto.nombre || '',
+                codigo: producto.codigo != null ? String(producto.codigo) : '',
                 precio: producto.precio || 0,
                 stock: producto.stock || 0,
                 descripcion: producto.descripcion || '',
@@ -301,7 +303,7 @@ export const productoController = {
             productoView._estado.seleccionados = [];
             productoView.limpiarSeleccion?.();
 
-            const datosEditados = await productManager.start('content-area', categoriasHijas, productoParaEdicion);
+            const datosEditados = await productManager.start('content-area', categoriasHijas, productoParaEdicion, categoriasPadres);
             if (!datosEditados) return;
 
             this._mostrarProgreso(['Procesando archivos', 'Actualizando datos', 'Sincronizando galería']);
@@ -357,6 +359,7 @@ export const productoController = {
             const [res] = await Promise.all([
                 productoModel.actualizar(id, {
                     nombre: datosEditados.nombre.trim(),
+                    codigo: String(datosEditados.codigo || '').trim(),
                     precio: parseFloat(datosEditados.precio),
                     stock: parseInt(datosEditados.stock),
                     descripcion: datosEditados.descripcion.trim(),

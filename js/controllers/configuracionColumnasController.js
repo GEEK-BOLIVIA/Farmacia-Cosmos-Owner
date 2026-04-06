@@ -5,7 +5,7 @@ import { configuracionColumnasView } from '../views/configuracionColumnasView.js
 export const configuracionColumnasController = {
 
     ESQUEMAS: {
-        productos: ['nro', 'imagen', 'nombre_producto', 'categoria', 'precio', 'stock', 'whatsapp'],
+        productos: ['nro', 'imagen', 'nombre_producto', 'categoria', 'codigo', 'precio', 'stock', 'whatsapp'],
     },
     // --- Agregar esto dentro de configuracionColumnasController ---
 
